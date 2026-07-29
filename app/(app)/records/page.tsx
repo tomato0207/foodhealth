@@ -36,9 +36,9 @@ export default async function RecordsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">紀錄</h1>
+      <h1 className="text-2xl font-semibold text-gray-900">紀錄</h1>
 
-      <form className="flex flex-wrap items-end gap-3 text-sm">
+      <form className="flex flex-wrap items-end gap-3 rounded-2xl border border-black/5 bg-white/90 p-4 text-sm shadow-sm shadow-black/[0.03] backdrop-blur">
         <label className="flex flex-col gap-1">
           從
           <input
@@ -57,17 +57,25 @@ export default async function RecordsPage({
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
         </label>
-        <button type="submit" className="rounded-lg bg-emerald-600 px-3 py-2 text-white shadow-sm transition-colors hover:bg-emerald-700">
+        <button
+          type="submit"
+          className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white shadow-sm shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98]"
+        >
           篩選
         </button>
       </form>
 
       {dates.length === 0 ? (
-        <p className="text-sm text-gray-500">這段期間沒有任何紀錄。</p>
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-black/10 bg-white/60 py-10 text-center">
+          <span className="text-3xl" aria-hidden>
+            📭
+          </span>
+          <p className="text-sm text-gray-500">這段期間沒有任何紀錄。</p>
+        </div>
       ) : (
         dates.map((date) => (
           <section key={date}>
-            <h2 className="mb-2 font-medium">{date}</h2>
+            <h2 className="mb-2 font-medium text-gray-700">{date}</h2>
             <div className="flex flex-col gap-3">
               {byDate.get(date)!.map((record) => (
                 <RecordCard

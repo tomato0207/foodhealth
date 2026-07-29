@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { NUTRIENT_ICONS } from "@/lib/types";
 
 interface TargetRow {
   nutrientId: string;
@@ -43,8 +44,11 @@ function TargetRowItem({ row }: { row: TargetRow }) {
   }
 
   return (
-    <tr className="border-b border-emerald-100">
-      <td className="py-2 pr-3">
+    <tr className="border-b border-black/5 last:border-0">
+      <td className="py-2.5 pr-3">
+        <span className="mr-1.5" aria-hidden>
+          {NUTRIENT_ICONS[row.key] ?? "•"}
+        </span>
         {row.name}
         {row.overridden && (
           <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
@@ -83,7 +87,7 @@ export default function TargetsTable({ rows }: { rows: TargetRow[] }) {
     <div className="flex flex-col gap-6">
       {categories.map((category) => (
         <div key={category}>
-          <h3 className="mb-2 font-medium">{category}</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{category}</h3>
           <table className="w-full text-sm">
             <tbody>
               {rows

@@ -41,3 +41,14 @@ export const MEAL_TYPE_ICONS: Record<MealType, string> = {
   DINNER: "🍲",
   SNACK: "🍎",
 };
+
+export const NUTRIENT_ICONS: Record<string, string> = {
+  calorie: "🔥",
+  protein: "🥩",
+  fat: "🥑",
+  saturated_fat: "🧈",
+  trans_fat: "🚫",
+  carbohydrate: "🌾",
+  sugar: "🍬",
+  sodium: "🧂",
+};

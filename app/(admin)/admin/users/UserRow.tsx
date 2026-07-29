@@ -38,10 +38,10 @@ export default function UserRow({ id, email, name, role, active, isSelf }: UserR
   }
 
   return (
-    <tr className="border-b border-emerald-100">
-      <td className="py-2">{name}</td>
-      <td className="py-2 text-gray-500">{email}</td>
-      <td className="py-2">
+    <tr className="border-b border-black/5 last:border-0 hover:bg-emerald-50/50">
+      <td className="px-4 py-3 font-medium text-gray-800">{name}</td>
+      <td className="px-4 py-3 text-gray-500">{email}</td>
+      <td className="px-4 py-3">
         <select
           value={role}
           disabled={isSelf || saving}
@@ -52,18 +52,18 @@ export default function UserRow({ id, email, name, role, active, isSelf }: UserR
           <option value="ADMIN">ADMIN</option>
         </select>
       </td>
-      <td className="py-2">
+      <td className="px-4 py-3">
         <button
           onClick={() => patch({ active: !active })}
           disabled={isSelf || saving}
-          className={`rounded px-2 py-1 text-xs disabled:opacity-60 ${
+          className={`rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-60 ${
             active ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
           }`}
         >
           {active ? "啟用中" : "已停用"}
         </button>
       </td>
-      <td className="py-2 text-xs text-red-600">{error}</td>
+      <td className="px-4 py-3 text-xs text-red-600">{error}</td>
     </tr>
   );
 }

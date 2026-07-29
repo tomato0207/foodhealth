@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import AuthLayout from "../AuthLayout";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -35,8 +36,9 @@ export default function RegisterForm() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-4">
-      <h1 className="mb-6 text-2xl font-semibold">建立帳號</h1>
+    <AuthLayout>
+      <h1 className="mb-1 text-2xl font-semibold text-gray-900">建立帳號</h1>
+      <p className="mb-6 text-sm text-gray-500">開始記錄你的第一餐</p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
           姓名
@@ -44,7 +46,7 @@ export default function RegisterForm() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 transition-shadow focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -54,7 +56,7 @@ export default function RegisterForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 transition-shadow focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -65,24 +67,24 @@ export default function RegisterForm() {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 transition-shadow focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="rounded-lg bg-emerald-600 px-3 py-2 text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
+          className="rounded-lg bg-emerald-600 px-3 py-2.5 font-medium text-white shadow-sm shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
         >
           {loading ? "建立中..." : "註冊"}
         </button>
       </form>
-      <p className="mt-4 text-sm">
+      <p className="mt-6 text-center text-sm text-gray-500">
         已經有帳號?{" "}
-        <Link href="/login" className="text-emerald-600 underline hover:text-emerald-700">
+        <Link href="/login" className="font-medium text-emerald-600 underline hover:text-emerald-700">
           登入
         </Link>
       </p>
-    </div>
+    </AuthLayout>
   );
 }

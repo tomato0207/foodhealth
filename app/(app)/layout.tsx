@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col">
       <NavBar name={user.name} links={LINKS} />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">{children}</main>
+      <main className="animate-fade-in-up mx-auto w-full max-w-4xl flex-1 px-4 py-8">{children}</main>
     </div>
   );
 }

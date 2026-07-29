@@ -76,7 +76,7 @@ export default function NewRecordForm({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 rounded-2xl border border-black/5 bg-white/90 p-6 shadow-sm shadow-black/[0.03] backdrop-blur">
       <div className="flex flex-wrap gap-4">
         <label className="flex flex-col gap-1 text-sm">
           日期
@@ -104,22 +104,32 @@ export default function NewRecordForm({
       </div>
 
       {entryMode === "select" && (
-        <div className="flex gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <button
             type="button"
             onClick={() => setEntryMode("photo")}
-            className="flex-1 rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+            className="group flex flex-col items-start gap-3 rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
           >
-            <div className="font-medium">📷 拍照辨識</div>
-            <div className="text-sm text-gray-500">拍食物照片或營養標示,讓 AI 估算</div>
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-xl transition-transform group-hover:scale-110">
+              📷
+            </span>
+            <div>
+              <div className="font-medium text-gray-900">拍照辨識</div>
+              <div className="mt-0.5 text-sm text-gray-500">拍食物照片或營養標示,讓 AI 估算</div>
+            </div>
           </button>
           <button
             type="button"
             onClick={() => setEntryMode("manual")}
-            className="flex-1 rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+            className="group flex flex-col items-start gap-3 rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
           >
-            <div className="font-medium">✍️ 手動輸入</div>
-            <div className="text-sm text-gray-500">從食物資料庫搜尋或自訂輸入</div>
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-100 text-xl transition-transform group-hover:scale-110">
+              ✍️
+            </span>
+            <div>
+              <div className="font-medium text-gray-900">手動輸入</div>
+              <div className="mt-0.5 text-sm text-gray-500">從食物資料庫搜尋或自訂輸入</div>
+            </div>
           </button>
         </div>
       )}
@@ -153,7 +163,7 @@ export default function NewRecordForm({
         type="button"
         onClick={handleSubmit}
         disabled={saving || items.length === 0}
-        className="w-fit rounded-lg bg-emerald-600 px-4 py-2 text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
+        className="w-fit rounded-lg bg-emerald-600 px-5 py-2.5 font-medium text-white shadow-sm shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
       >
         {saving ? "儲存中..." : "儲存這筆紀錄"}
       </button>
