@@ -21,10 +21,13 @@ npm install
 
 ### 2. 設定環境變數
 
-到 Supabase 專案的 **Settings → Database → Connection string** 複製直連(port 5432)字串,填入 `.env`:
+到 Supabase 專案點右上角 **Connect** → **Direct** 分頁 → 選 **Transaction pooler**,複製那組字串(port 6543),填入 `.env` 的 `DATABASE_URL`:
 
 ```env
-DATABASE_URL="postgresql://postgres:<你的資料庫密碼>@db.<你的專案ID>.supabase.co:5432/postgres"
+DATABASE_URL="postgresql://postgres.<你的專案ID>:<你的資料庫密碼>@aws-0-<region>.pooler.supabase.com:6543/postgres"
+
+# 只有跑 `prisma migrate` 時手動用得到(見下方說明),app 執行時不會用到
+DIRECT_URL="postgresql://postgres:<你的資料庫密碼>@db.<你的專案ID>.supabase.co:5432/postgres"
 
 AI_PROVIDER="gemini"   # 或 "lmstudio"
 
@@ -42,21 +45,22 @@ SUPABASE_SERVICE_ROLE_KEY="<Settings → API → service_role secret key>"
 
 `SUPABASE_SERVICE_ROLE_KEY` 擁有繞過 RLS 的完整權限,只能用在伺服器端(這裡是 Route Handler / script),絕對不能出現在任何 Client Component 或瀏覽器看得到的地方。
 
-目前用的是**直連**字串,適合本機開發。之後若部署到 Vercel 等 serverless 平台,建議改用 Supabase 提供的 **Connection pooling** 字串,並在 `prisma.config.ts` 的 `datasource` 加上 `directUrl`(指向直連字串)供 migration 使用,例如:
+**為什麼一定要用 pooler、不能用直連:** Supabase 的直連字串(`db.<專案ID>.supabase.co:5432`)只支援 IPv6,Vercel 的 serverless function 沒有 IPv6 對外連線能力,直連字串在 Vercel 上會連不到資料庫(本機開發若有 IPv6 則直連也能動,但為了跟正式環境一致、避免「本機正常、線上壞掉」,建議本機也直接用 pooler)。
 
-```ts
-datasource: {
-  url: env("DATABASE_URL"),       // pooler(port 6543)
-  directUrl: env("DIRECT_URL"),   // 直連(port 5432),migration 用
-}
+`prisma migrate` 這類需要 DDL 鎖的指令,在走 transaction-mode pooler 時可能不穩定,所以遇到要跑 migration 時,手動把 `DATABASE_URL` 換成 `.env` 裡的 `DIRECT_URL`(直連字串)執行,例如:
+
+```bash
+DATABASE_URL="$DIRECT_URL" npx prisma migrate deploy
 ```
+
+跑完後把 `DATABASE_URL` 換回 pooler 字串即可(日常開發/執行 app 不需要這麼做,只有動到 schema 才需要)。
 
 `LMSTUDIO_MODEL` 請填寫你在 LM Studio 中實際載入的**視覺(vision)模型**名稱。
 
 ### 3. 建立資料庫、寫入種子資料、匯入 TFND 食品資料
 
 ```bash
-npx prisma migrate deploy   # 或開發時用 npx prisma migrate dev
+DATABASE_URL="$DIRECT_URL" npx prisma migrate deploy   # 或開發時用 migrate dev；migration 需要直連,見上方說明
 npx prisma db seed
 npx tsx prisma/import-tfnd.ts
 npx tsx scripts/setup-storage.ts   # 建立存放拍照照片用的 Supabase Storage bucket
@@ -121,6 +125,6 @@ npm run build
 
 1. 把上面 `.env` 的所有變數,設定到 Vercel 專案的 **Settings → Environment Variables**。
 2. **`ALLOW_REGISTRATION` 建議設為 `"false"`**:公開部署後任何人都能連到你的網站,若自行註冊是開放的,任何人註冊後都能觸發拍照辨識、消耗你的 `GEMINI_API_KEY` 額度/費用。關閉後,新使用者只能由管理員在 `/admin/users` 手動新增。
-3. `DATABASE_URL` 若之後遇到連線數不足,改用 Supabase 的 **Connection pooling** 字串(見上方第 2 步的說明),並加上 `directUrl` 供 migration 使用。
+3. **`DATABASE_URL` 一定要用 pooler 字串,不能用直連**——Vercel 沒有 IPv6 對外連線,直連字串在 Vercel 上會出現 `Can't reach database server`(P1001)錯誤,只有 pooler(port 6543)支援 IPv4。`DIRECT_URL` 不需要設到 Vercel,只有本機跑 migration 時才用得到。
 4. 拍照上傳的照片存在 Supabase Storage(不是本機檔案系統),所以在 Vercel 這種無狀態的 serverless 環境下可以正常運作;記得先跑過 `scripts/setup-storage.ts` 建立 bucket,並在 Vercel 設定 `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`。
 5. Migration/seed/匯入腳本(`prisma migrate deploy`、`prisma db seed`、`import-tfnd.ts`)請在本機或 CI 執行一次,對正式的 Supabase 資料庫跑過即可,不需要在 Vercel 上執行。
