@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// role: "USER" | "ADMIN"
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("USER")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  sessions       Session[]
+  profile        UserProfile?
+  targets        UserNutrientTarget[]
+  mealRecords    MealRecord[]
+  uploadedImages UploadedImage[]
+  createdFoods   Food[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// gender: "MALE" | "FEMALE"
+// activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE"
+// goal: "MAINTAIN" | "CUT" | "BULK"
+model UserProfile {
+  userId        String   @id
+  gender        String
+  birthYear     Int
+  heightCm      Float
+  weightKg      Float
+  activityLevel String
+  goal          String
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Nutrient {
+  id                String  @id @default(cuid())
+  key               String  @unique
+  name              String
+  unit              String
+  category          String
+  defaultDailyValue Float
+  sortOrder         Int     @default(0)
+  // whether this nutrient gets a personal daily target / shows on /today, AI prompts, and manual entry —
+  // false for lab-grade breakdowns (amino acids, fatty acids) that aren't meaningful daily targets
+  trackable         Boolean @default(true)
+
+  targets       UserNutrientTarget[]
+  foodNutrients FoodNutrient[]
+}
+
+model UserNutrientTarget {
+  userId      String
+  nutrientId  String
+  dailyTarget Float
+  overridden  Boolean @default(false)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nutrient Nutrient @relation(fields: [nutrientId], references: [id], onDelete: Cascade)
+
+  @@id([userId, nutrientId])
+}
+
+model Food {
+  id          String   @id @default(cuid())
+  name        String
+  servingSize Float
+  servingUnit String
+  category    String
+  note        String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  // external source code (e.g. TFND 整合編號) for idempotent bulk imports; null for admin-entered foods
+  sourceCode  String?  @unique
+
+  createdBy       User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  nutrients       FoodNutrient[]
+  mealRecordItems MealRecordItem[]
+}
+
+model FoodNutrient {
+  foodId           String
+  nutrientId       String
+  amountPerServing Float
+
+  food     Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  nutrient Nutrient @relation(fields: [nutrientId], references: [id], onDelete: Cascade)
+
+  @@id([foodId, nutrientId])
+}
+
+// mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
+// source: "MANUAL" | "AI_FOOD_PHOTO" | "AI_LABEL_PHOTO"
+model MealRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  mealDate  String
+  mealType  String
+  imageId   String?
+  source    String
+  createdAt DateTime @default(now())
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image UploadedImage?   @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  items MealRecordItem[]
+
+  @@index([userId, mealDate])
+}
+
+model MealRecordItem {
+  id               String  @id @default(cuid())
+  mealRecordId     String
+  itemName         String
+  foodId           String?
+  quantity         Float
+  unit             String
+  nutrientSnapshot String
+  estimatedByAI    Boolean @default(false)
+
+  mealRecord MealRecord @relation(fields: [mealRecordId], references: [id], onDelete: Cascade)
+  food       Food?      @relation(fields: [foodId], references: [id], onDelete: SetNull)
+}
+
+model UploadedImage {
+  id        String   @id @default(cuid())
+  userId    String
+  filename  String
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealRecords MealRecord[]
+}
