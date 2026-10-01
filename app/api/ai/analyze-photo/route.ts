@@ -41,6 +41,13 @@ export async function POST(request: Request) {
       { base64: buffer.toString("base64"), mimeType: file.type },
       nutrients
     );
+    if (result.items.length === 0) {
+      const subject = mode === "food" ? "食物" : "營養標示";
+      return Response.json(
+        { error: `AI 無法從這張照片辨識出${subject},請確認照片內容後重新拍攝,或改用手動輸入。`, imageId: savedImage.id },
+        { status: 422 }
+      );
+    }
     return Response.json({ ok: true, imageId: savedImage.id, items: result.items });
   } catch (error) {
     return Response.json(

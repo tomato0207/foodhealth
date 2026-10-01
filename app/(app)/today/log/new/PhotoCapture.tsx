@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DraftItem } from "./types";
 
 interface PhotoCaptureProps {
@@ -10,10 +10,17 @@ interface PhotoCaptureProps {
 }
 
 export default function PhotoCapture({ mode, onModeChange, onAnalyzed }: PhotoCaptureProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 6000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] ?? null;
@@ -81,12 +88,24 @@ export default function PhotoCapture({ mode, onModeChange, onAnalyzed }: PhotoCa
       </div>
 
       <input
+        ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
         capture="environment"
         onChange={handleFileChange}
-        className="text-sm"
+        className="hidden"
       />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-2 rounded-lg border border-emerald-600 bg-white px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-md active:scale-[0.97] active:bg-emerald-100"
+        >
+          📁 {file ? "重新選擇照片" : "選擇照片"}
+        </button>
+        {file && <span className="truncate text-sm text-gray-500">{file.name}</span>}
+      </div>
 
       {previewUrl && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -97,15 +116,30 @@ export default function PhotoCapture({ mode, onModeChange, onAnalyzed }: PhotoCa
         type="button"
         onClick={handleAnalyze}
         disabled={!file || analyzing}
-        className="w-fit rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
+        className="w-fit rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100"
       >
         {analyzing ? "AI 辨識中..." : "開始 AI 辨識"}
       </button>
 
       {error && (
-        <p className="text-sm text-red-600">
-          {error} (照片已上傳,你可以在下方手動輸入本次紀錄)
-        </p>
+        <div
+          role="alert"
+          className="animate-fade-in-up fixed inset-x-4 top-4 z-50 mx-auto flex max-w-sm items-start gap-3 rounded-xl border border-red-200 bg-white px-4 py-3 shadow-lg shadow-black/10 sm:left-auto sm:right-4"
+        >
+          <span className="text-lg leading-none">⚠️</span>
+          <div className="flex-1 text-sm text-gray-700">
+            <p className="font-medium text-red-600">辨識失敗</p>
+            <p className="mt-0.5">{error}(照片已上傳,你可以在下方手動輸入本次紀錄)</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="關閉"
+            className="shrink-0 text-gray-400 transition-colors hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
       )}
     </div>
   );

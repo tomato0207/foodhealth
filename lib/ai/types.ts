@@ -42,10 +42,17 @@ export function buildPrompt(mode: PhotoAnalysisMode, nutrients: NutrientDescript
       ? "這是一張餐點照片。請辨識照片中的每一種食物品項,估計其份量,並估算各項營養素含量。"
       : "這是一張食品營養標示照片。請讀取標示表上的數值(以每份/每次食用量為準),對應到下列營養素。若標示上沒有某個營養素,填 0。";
 
+  const fallback =
+    mode === "food"
+      ? "如果照片中沒有看到任何食物或餐點(例如拍到的是人、風景、物品、空白畫面等不相干的內容),請回傳 \"items\": []。"
+      : "如果照片中沒有看到營養標示表(例如拍到的是食物本身、人、風景或其他不相干的內容),請回傳 \"items\": []。";
+
   return `你是專業的營養分析助手。${task}
 
 請只使用以下營養素 key(不要新增其他 key):
 ${nutrientList}
+
+${fallback}
 
 請務必只回傳嚴格的 JSON,不要包含任何說明文字或 markdown 標記,格式如下:
 ${schemaExample}
