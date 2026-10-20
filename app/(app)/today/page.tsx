@@ -7,6 +7,15 @@ import { NUTRIENT_ICONS, type MealType } from "@/lib/types";
 import RecordCard from "@/app/_components/RecordCard";
 import CircularProgress from "@/app/_components/CircularProgress";
 
+// 依攝取比例分級:< 80% 綠、80–100% 黃、> 100% 紅
+function progressTone(pct: number) {
+  if (pct > 100)
+    return { ring: "#ef4444", ringTrack: "#fee2e2", bar: "from-red-400 to-red-600", track: "bg-red-100", text: "text-red-600" };
+  if (pct >= 80)
+    return { ring: "#f59e0b", ringTrack: "#fef3c7", bar: "from-amber-300 to-amber-500", track: "bg-amber-100", text: "text-amber-600" };
+  return { ring: "#10b981", ringTrack: "#d1fae5", bar: "from-emerald-400 to-emerald-600", track: "bg-emerald-100", text: "text-gray-400" };
+}
+
 export default async function TodayPage() {
   const user = await requireUser();
   const mealDate = todayDateString();
@@ -27,6 +36,9 @@ export default async function TodayPage() {
   const intake = sumIntake(records);
   const calorieTarget = targets.find((t) => t.nutrient.key === "calorie");
   const otherTargets = targets.filter((t) => t.nutrient.key !== "calorie");
+  const caloriePct =
+    calorieTarget && calorieTarget.dailyTarget > 0 ? ((intake.calorie ?? 0) / calorieTarget.dailyTarget) * 100 : 0;
+  const calorieTone = progressTone(caloriePct);
 
   return (
     <div className="flex flex-col gap-8">
@@ -55,9 +67,11 @@ export default async function TodayPage() {
           <div className="flex flex-col items-center gap-6 border-b border-black/5 pb-6 sm:flex-row sm:items-center">
             {calorieTarget && (
               <CircularProgress
-                pct={calorieTarget.dailyTarget > 0 ? ((intake.calorie ?? 0) / calorieTarget.dailyTarget) * 100 : 0}
+                pct={caloriePct}
                 size={128}
                 strokeWidth={11}
+                color={calorieTone.ring}
+                trackColor={calorieTone.ringTrack}
               >
                 <div className="flex flex-col items-center">
                   <span className="text-2xl" aria-hidden>
@@ -69,19 +83,22 @@ export default async function TodayPage() {
             )}
             <div className="text-center sm:text-left">
               <p className="text-sm text-gray-500">熱量攝取</p>
-              <p className="text-3xl font-semibold text-gray-900">
+              <p className={`text-3xl font-semibold ${caloriePct > 100 ? "text-red-600" : "text-gray-900"}`}>
                 {Math.round(intake.calorie ?? 0)}
                 <span className="ml-1 text-base font-normal text-gray-400">
                   / {calorieTarget?.dailyTarget ?? 0} kcal
                 </span>
               </p>
+              {caloriePct > 100 && <p className="mt-1 text-xs font-medium text-red-600">已超出每日目標</p>}
             </div>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
             {otherTargets.map((target) => {
               const current = intake[target.nutrient.key] ?? 0;
-              const pct = target.dailyTarget > 0 ? Math.min(100, (current / target.dailyTarget) * 100) : 0;
+              const rawPct = target.dailyTarget > 0 ? (current / target.dailyTarget) * 100 : 0;
+              const pct = Math.min(100, rawPct);
+              const tone = progressTone(rawPct);
               return (
                 <div key={target.nutrientId}>
                   <div className="flex items-center justify-between text-sm">
@@ -90,13 +107,13 @@ export default async function TodayPage() {
                       {target.nutrient.name}
                     </span>
                   </div>
-                  <div className="mt-1.5 h-1.5 w-full rounded-full bg-emerald-100">
+                  <div className={`mt-1.5 h-1.5 w-full rounded-full ${tone.track}`}>
                     <div
-                      className="h-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-[width] duration-500"
+                      className={`h-1.5 rounded-full bg-gradient-to-r ${tone.bar} transition-[width] duration-500`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className={`mt-1 text-xs ${tone.text}`}>
                     {current.toFixed(1)} / {target.dailyTarget} {target.nutrient.unit}
                   </p>
                 </div>
