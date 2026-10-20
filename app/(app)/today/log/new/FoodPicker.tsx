@@ -39,10 +39,11 @@ export default function FoodPicker({ onAdd }: { onAdd: (item: DraftItem) => void
       clientId: crypto.randomUUID(),
       itemName: food.name,
       foodId: food.id,
-      quantity: 1,
+      quantity: food.servingSize,
       unit: food.servingUnit,
       nutrients: { ...food.nutrients },
       perServingNutrients: { ...food.nutrients },
+      servingSize: food.servingSize,
       estimatedByAI: false,
     });
     setQuery("");

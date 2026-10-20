@@ -75,9 +75,11 @@ export async function POST(request: Request) {
       });
       if (!food) return Response.json({ error: "找不到指定的食物。" }, { status: 400 });
 
+      // quantity is in the food's servingUnit (e.g. 克), so scale by how many servings it amounts to
+      const servings = quantity / food.servingSize;
       const snapshot: Record<string, number> = {};
       for (const fn of food.nutrients) {
-        snapshot[fn.nutrient.key] = fn.amountPerServing * quantity;
+        snapshot[fn.nutrient.key] = fn.amountPerServing * servings;
       }
 
       preparedItems.push({

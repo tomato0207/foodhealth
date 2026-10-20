@@ -23,7 +23,7 @@ export default function ItemsEditor({ items, nutrients, onChange }: ItemsEditorP
         if (item.clientId !== clientId) return item;
         const next = { ...item, ...patch };
         if (next.perServingNutrients && patch.quantity !== undefined) {
-          next.nutrients = scale(next.perServingNutrients, next.quantity);
+          next.nutrients = scale(next.perServingNutrients, next.quantity / (next.servingSize ?? 1));
         }
         return next;
       })

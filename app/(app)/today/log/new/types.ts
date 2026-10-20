@@ -9,6 +9,8 @@ export interface DraftItem {
   nutrients: Record<string, number>;
   estimatedByAI: boolean;
   perServingNutrients: Record<string, number> | null;
+  /** size of one serving in `unit` (e.g. 100 克) that perServingNutrients refers to; quantity is in the same unit. */
+  servingSize?: number;
 }
 
 export interface NutrientDescriptor {
