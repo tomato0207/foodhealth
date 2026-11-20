@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireUser, AuthError } from "@/lib/auth";
 import { saveUploadedImage } from "@/lib/uploads";
-import { analyzePhoto, type PhotoAnalysisMode } from "@/lib/ai";
+import { analyzePhoto, getDefaultProvider, isAiProvider, type PhotoAnalysisMode } from "@/lib/ai";
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -17,12 +17,17 @@ export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
   const mode = formData?.get("mode") as PhotoAnalysisMode | null;
+  const requestedProvider = formData?.get("provider");
+  const provider = requestedProvider == null ? getDefaultProvider() : requestedProvider;
 
   if (!(file instanceof File)) {
     return Response.json({ error: "請上傳照片。" }, { status: 400 });
   }
   if (mode !== "food" && mode !== "label") {
     return Response.json({ error: "辨識模式不正確。" }, { status: 400 });
+  }
+  if (!isAiProvider(provider)) {
+    return Response.json({ error: "AI 辨識後端不正確。" }, { status: 400 });
   }
   if (!ALLOWED_MIME_TYPES.has(file.type)) {
     return Response.json({ error: "僅支援 JPEG、PNG 或 WebP 格式的照片。" }, { status: 400 });
@@ -37,6 +42,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await analyzePhoto(
+      provider,
       mode,
       { base64: buffer.toString("base64"), mimeType: file.type },
       nutrients

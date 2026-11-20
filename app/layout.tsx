@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "營養管家",
   description: "個人化營養素追蹤與 AI 拍照估算",
+  appleWebApp: { capable: true, title: "營養管家", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#059669",
 };
 
 export default function RootLayout({

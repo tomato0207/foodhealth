@@ -79,6 +79,14 @@ npx tsx scripts/setup-storage.ts   # 建立存放拍照照片用的 Supabase Sto
   1. 開啟 LM Studio,載入一個支援影像輸入的模型(例如 Qwen2-VL、LLaVA 等)
   2. 啟動本機伺服器(Local Server),確認位址與 `.env` 的 `LMSTUDIO_BASE_URL` 一致
 
+`AI_PROVIDER` 只是預設值:兩種後端的環境變數都設好時,使用者可以在「新增紀錄 → 拍照」畫面每次自行切換「辨識引擎」;沒設定好的後端會顯示為「未設定」、無法選取(Gemini 看 `GEMINI_API_KEY`,LM Studio 看 `LMSTUDIO_MODEL`)。
+
+**用別台電腦(例如同學)的 LM Studio + ngrok:**
+
+1. 對方在 LM Studio 載入視覺模型並啟動伺服器(預設 port 1234),再執行 `ngrok http 1234`(建議在 ngrok 後台申請免費固定網址,改用 `ngrok http --url=<固定網址> 1234`,網址才不會每次重開都變)
+2. 在 Vercel 設定 `LMSTUDIO_BASE_URL="https://<ngrok 網址>/v1"`(結尾要有 `/v1`)與 `LMSTUDIO_MODEL`,然後 Redeploy
+3. 若對方在 LM Studio 開了「Require Authentication」,把它產生的金鑰填到 `LMSTUDIO_API_KEY`;ngrok 網址是公開的,建議開啟
+
 不論哪種後端,若呼叫失敗(未設定 Key、LM Studio 未啟動、額度用盡等),拍照辨識會顯示明確錯誤訊息,並保留已上傳的照片供你改用「手動輸入」完成紀錄。
 
 ### 5. 啟動開發伺服器
@@ -128,3 +136,24 @@ npm run build
 3. **`DATABASE_URL` 一定要用 pooler 字串,不能用直連**——Vercel 沒有 IPv6 對外連線,直連字串在 Vercel 上會出現 `Can't reach database server`(P1001)錯誤,只有 pooler(port 6543)支援 IPv4。`DIRECT_URL` 不需要設到 Vercel,只有本機跑 migration 時才用得到。
 4. 拍照上傳的照片存在 Supabase Storage(不是本機檔案系統),所以在 Vercel 這種無狀態的 serverless 環境下可以正常運作;記得先跑過 `scripts/setup-storage.ts` 建立 bucket,並在 Vercel 設定 `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`。
 5. Migration/seed/匯入腳本(`prisma migrate deploy`、`prisma db seed`、`import-tfnd.ts`)請在本機或 CI 執行一次,對正式的 Supabase 資料庫跑過即可,不需要在 Vercel 上執行。
+
+## Android App(PWA + TWA)
+
+網站本身是 PWA(`app/manifest.ts`、`public/icons/`),Android 手機用 Chrome 開啟後可「加到主畫面」。要產生可安裝的 APK / 上架 Google Play 的 AAB,使用 Google 的 [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap) 把網站包成 Trusted Web Activity(TWA)——App 內容就是 Vercel 上的網站,網站更新後 App 自動跟著更新,不必重新打包。
+
+1. 在**專案資料夾以外**建一個資料夾(裡面會有簽章金鑰,不要放進 git),執行:
+   ```bash
+   npx @bubblewrap/cli init --manifest https://<你的網域>/manifest.webmanifest
+   ```
+   第一次會詢問是否自動下載 JDK 與 Android SDK,都選 Yes;接著依提示確認 App 名稱、套件名稱(packageId,例如 `app.vercel.foodhealth.twa`),並建立簽章金鑰(keystore)。**keystore 檔與密碼務必備份**,遺失就無法再更新同一個 App。
+2. 產生 APK:
+   ```bash
+   npx @bubblewrap/cli build
+   ```
+   完成後資料夾內的 `app-release-signed.apk` 可直接傳到手機安裝;`app-release-bundle.aab` 用於上架 Google Play。
+3. 讓 App 全螢幕顯示(隱藏 Chrome 網址列):執行 `npx @bubblewrap/cli fingerprint list` 取得 SHA-256 指紋,在 Vercel 設定以下環境變數後 Redeploy,`/.well-known/assetlinks.json` 就會自動產生對應內容:
+   ```env
+   TWA_PACKAGE_NAME="app.vercel.foodhealth.twa"   # 與 init 時的 packageId 相同
+   TWA_SHA256_FINGERPRINTS="AB:CD:..."             # 多個以逗號分隔;上架 Play 時再加上 Play Console「應用程式簽署金鑰」的指紋
+   ```
+   沒設定時 App 仍可使用,只是上方會多一條網址列。

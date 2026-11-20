@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MEAL_TYPE_LABELS, type MealType, type RecordSource } from "@/lib/types";
-import type { DraftItem, NutrientDescriptor } from "./types";
+import type { AiProviderOption, DraftItem, NutrientDescriptor } from "./types";
 import PhotoCapture from "./PhotoCapture";
 import FoodPicker from "./FoodPicker";
 import ItemsEditor from "./ItemsEditor";
@@ -13,9 +13,13 @@ type EntryMode = "select" | "photo" | "manual";
 export default function NewRecordForm({
   nutrients,
   defaultDate,
+  aiProviders,
+  defaultAiProvider,
 }: {
   nutrients: NutrientDescriptor[];
   defaultDate: string;
+  aiProviders: AiProviderOption[];
+  defaultAiProvider: AiProviderOption["id"];
 }) {
   const router = useRouter();
   const [entryMode, setEntryMode] = useState<EntryMode>("select");
@@ -135,7 +139,13 @@ export default function NewRecordForm({
       )}
 
       {entryMode === "photo" && (
-        <PhotoCapture mode={photoMode} onModeChange={setPhotoMode} onAnalyzed={handleAnalyzed} />
+        <PhotoCapture
+          mode={photoMode}
+          onModeChange={setPhotoMode}
+          providers={aiProviders}
+          defaultProvider={defaultAiProvider}
+          onAnalyzed={handleAnalyzed}
+        />
       )}
 
       {entryMode === "manual" && <FoodPicker onAdd={handleAddManual} />}

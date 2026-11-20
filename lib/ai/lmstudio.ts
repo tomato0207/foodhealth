@@ -5,7 +5,10 @@ import type { ImageInput, NutrientDescriptor, PhotoAnalysisMode, PhotoAnalysisRe
 function getClient() {
   return new OpenAI({
     baseURL: process.env.LMSTUDIO_BASE_URL ?? "http://localhost:1234/v1",
-    apiKey: "lm-studio", // LM Studio does not validate this, the SDK just requires a value
+    // only checked when "Require Authentication" is on in LM Studio; the SDK just requires some value otherwise
+    apiKey: process.env.LMSTUDIO_API_KEY || "lm-studio",
+    // lets requests through when LM Studio is exposed via an ngrok tunnel (skips ngrok's browser warning page)
+    defaultHeaders: { "ngrok-skip-browser-warning": "true" },
   });
 }
 

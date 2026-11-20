@@ -1,16 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { DraftItem } from "./types";
+import type { AiProviderOption, DraftItem } from "./types";
 
 interface PhotoCaptureProps {
   mode: "food" | "label";
   onModeChange: (mode: "food" | "label") => void;
+  providers: AiProviderOption[];
+  defaultProvider: AiProviderOption["id"];
   onAnalyzed: (items: DraftItem[], imageId: string) => void;
 }
 
-export default function PhotoCapture({ mode, onModeChange, onAnalyzed }: PhotoCaptureProps) {
+export default function PhotoCapture({ mode, onModeChange, providers, defaultProvider, onAnalyzed }: PhotoCaptureProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // preselect the server default, falling back to the first backend that is actually configured
+  const [provider, setProvider] = useState<AiProviderOption["id"]>(() =>
+    providers.find((p) => p.id === defaultProvider && p.configured)?.id ??
+    providers.find((p) => p.configured)?.id ??
+    defaultProvider
+  );
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -37,6 +45,7 @@ export default function PhotoCapture({ mode, onModeChange, onAnalyzed }: PhotoCa
       const formData = new FormData();
       formData.append("file", file);
       formData.append("mode", mode);
+      formData.append("provider", provider);
       const res = await fetch("/api/ai/analyze-photo", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {
@@ -87,6 +96,27 @@ export default function PhotoCapture({ mode, onModeChange, onAnalyzed }: PhotoCa
         </button>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-gray-500">辨識引擎</span>
+        {providers.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setProvider(p.id)}
+            disabled={!p.configured}
+            title={p.configured ? undefined : "伺服器尚未設定此辨識引擎的環境變數"}
+            className={`rounded-full border px-3 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              provider === p.id
+                ? "border-emerald-600 bg-emerald-50 font-medium text-emerald-700"
+                : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300"
+            }`}
+          >
+            {p.label}
+            {!p.configured && "(未設定)"}
+          </button>
+        ))}
+      </div>
+
       <input
         ref={fileInputRef}
         type="file"
@@ -115,10 +145,14 @@ export default function PhotoCapture({ mode, onModeChange, onAnalyzed }: PhotoCa
       <button
         type="button"
         onClick={handleAnalyze}
-        disabled={!file || analyzing}
+        disabled={!file || analyzing || !providers.some((p) => p.id === provider && p.configured)}
         className="w-fit rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100"
       >
-        {analyzing ? "AI 辨識中..." : "開始 AI 辨識"}
+        {analyzing
+          ? provider === "lmstudio"
+            ? "AI 辨識中...(本機模型可能需要一分鐘左右)"
+            : "AI 辨識中..."
+          : "開始 AI 辨識"}
       </button>
 
       {error && (
