@@ -156,3 +156,15 @@ model UploadedImage {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   mealRecords MealRecord[]
 }
+
+// single row (id = "default") holding the admin-managed photo-recognition settings;
+// any null field falls back to the matching env var (AI_PROVIDER / LMSTUDIO_*)
+// provider: "gemini" | "lmstudio" | "user_choice" (users pick per photo)
+model AiSetting {
+  id              String   @id @default("default")
+  provider        String?
+  lmstudioBaseUrl String?
+  lmstudioApiKey  String?
+  lmstudioModel   String?
+  updatedAt       DateTime @updatedAt
+}

@@ -9,7 +9,7 @@
 - Next.js 16(App Router)+ TypeScript + Tailwind CSS
 - Prisma 7 + [Supabase](https://supabase.com/)(PostgreSQL,`@prisma/adapter-pg`)
 - 自建帳密登入(bcrypt 雜湊密碼 + session cookie,無第三方 Auth 服務)
-- AI 拍照辨識可切換兩種後端:[LM Studio](https://lmstudio.ai/) 本機伺服器(完全離線、免費)或 [Gemini API](https://ai.google.dev/)(雲端、需要網路與 API Key),由 `.env` 的 `AI_PROVIDER` 決定
+- AI 拍照辨識可切換兩種後端:[LM Studio](https://lmstudio.ai/) 本機伺服器(完全離線、免費)或 [Gemini API](https://ai.google.dev/)(雲端、需要網路與 API Key),由管理員在後台「AI 辨識設定」頁面決定(也可以讓使用者每次拍照自選)
 
 ## 開始使用
 
@@ -79,13 +79,19 @@ npx tsx scripts/setup-storage.ts   # 建立存放拍照照片用的 Supabase Sto
   1. 開啟 LM Studio,載入一個支援影像輸入的模型(例如 Qwen2-VL、LLaVA 等)
   2. 啟動本機伺服器(Local Server),確認位址與 `.env` 的 `LMSTUDIO_BASE_URL` 一致
 
-`AI_PROVIDER` 只是預設值:兩種後端的環境變數都設好時,使用者可以在「新增紀錄 → 拍照」畫面每次自行切換「辨識引擎」;沒設定好的後端會顯示為「未設定」、無法選取(Gemini 看 `GEMINI_API_KEY`,LM Studio 看 `LMSTUDIO_MODEL`)。
+**管理員後台「AI 辨識設定」(`/admin/ai-settings`):** 用管理員帳號登入後,上方選單點「AI 辨識設定」,可以:
+
+- 選擇辨識引擎:固定用 Gemini、固定用 LM Studio,或「讓使用者自選」(使用者在「新增紀錄 → 拍照」畫面每次切換;尚未儲存過設定時預設為自選,`AI_PROVIDER` 決定預選哪一個)
+- 填寫 LM Studio 的 ngrok 網址、API 金鑰(密碼)與模型名稱,按「測試連線」確認後儲存,**不需要改環境變數或 Redeploy**
+- 頁面下方有完整的「設定教學」與「連線失敗怎麼辦」說明
+
+後台儲存的值優先;沒填的欄位才會退回使用 `.env` 的 `LMSTUDIO_BASE_URL` / `LMSTUDIO_API_KEY` / `LMSTUDIO_MODEL`。Gemini 的 `GEMINI_API_KEY` 仍只能用環境變數設定。
 
 **用別台電腦(例如同學)的 LM Studio + ngrok:**
 
 1. 對方在 LM Studio 載入視覺模型並啟動伺服器(預設 port 1234),再執行 `ngrok http 1234`(建議在 ngrok 後台申請免費固定網址,改用 `ngrok http --url=<固定網址> 1234`,網址才不會每次重開都變)
-2. 在 Vercel 設定 `LMSTUDIO_BASE_URL="https://<ngrok 網址>/v1"`(結尾要有 `/v1`)與 `LMSTUDIO_MODEL`,然後 Redeploy
-3. 若對方在 LM Studio 開了「Require Authentication」,把它產生的金鑰填到 `LMSTUDIO_API_KEY`;ngrok 網址是公開的,建議開啟
+2. 對方在 LM Studio 開啟「Require Authentication」並建立 API Token;ngrok 網址是公開的,建議開啟
+3. 管理員到「AI 辨識設定」填入 `https://<ngrok 網址>`(`/v1` 會自動補上)、API Token 與模型名稱,測試連線後儲存
 
 不論哪種後端,若呼叫失敗(未設定 Key、LM Studio 未啟動、額度用盡等),拍照辨識會顯示明確錯誤訊息,並保留已上傳的照片供你改用「手動輸入」完成紀錄。
 
@@ -117,7 +123,7 @@ npm run dev
 - `prisma/import-tfnd.ts` — 從官方開放資料下載並匯入全部食品與營養成分,可重複執行
 - `lib/auth.ts` — session 登入/登出、`requireUser` / `requireAdmin`
 - `lib/nutrition.ts` — Mifflin-St Jeor BMR/TDEE 計算與每日營養素目標
-- `lib/ai/` — 拍照辨識:`index.ts` 依 `AI_PROVIDER` 分派到 `gemini.ts` 或 `lmstudio.ts`,`types.ts` 是共用的 prompt 組裝與 JSON 正規化邏輯
+- `lib/ai/` — 拍照辨識:`settings.ts` 讀取管理員在後台存的設定(`AiSetting` 資料表,沒填的退回環境變數),`index.ts` 依設定分派到 `gemini.ts` 或 `lmstudio.ts`,`types.ts` 是共用的 prompt 組裝與 JSON 正規化邏輯
 - `lib/uploads.ts` — 上傳照片存於 Supabase Storage 私有 bucket(`meal-photos`),需經授權的 API route(`/api/uploads/[id]`)才能讀取
 - `scripts/setup-storage.ts` — 建立 `meal-photos` bucket(一次性,可重複執行)
 - `app/(app)/*`、`app/(admin)/admin/*` — 使用者端與管理員端頁面

@@ -1,26 +1,28 @@
 import OpenAI from "openai";
 import { buildPrompt, extractJson, normalizeResult } from "./types";
 import type { ImageInput, NutrientDescriptor, PhotoAnalysisMode, PhotoAnalysisResult } from "./types";
+import type { LmStudioConfig } from "./settings";
 
-function getClient() {
+export function createLmStudioClient(config: Pick<LmStudioConfig, "baseUrl" | "apiKey">) {
   return new OpenAI({
-    baseURL: process.env.LMSTUDIO_BASE_URL ?? "http://localhost:1234/v1",
+    baseURL: config.baseUrl,
     // only checked when "Require Authentication" is on in LM Studio; the SDK just requires some value otherwise
-    apiKey: process.env.LMSTUDIO_API_KEY || "lm-studio",
+    apiKey: config.apiKey || "lm-studio",
     // lets requests through when LM Studio is exposed via an ngrok tunnel (skips ngrok's browser warning page)
     defaultHeaders: { "ngrok-skip-browser-warning": "true" },
   });
 }
 
 export async function analyzePhotoWithLmStudio(
+  config: LmStudioConfig,
   mode: PhotoAnalysisMode,
   image: ImageInput,
   nutrients: NutrientDescriptor[]
 ): Promise<PhotoAnalysisResult> {
-  const client = getClient();
-  const model = process.env.LMSTUDIO_MODEL;
+  const client = createLmStudioClient(config);
+  const model = config.model;
   if (!model) {
-    throw new Error("尚未設定 LMSTUDIO_MODEL 環境變數,請指定 LM Studio 中已載入的視覺模型名稱。");
+    throw new Error("尚未設定 LM Studio 模型名稱,請管理員到「AI 辨識設定」填入 LM Studio 中已載入的視覺模型。");
   }
 
   let completion;
@@ -40,7 +42,7 @@ export async function analyzePhotoWithLmStudio(
     });
   } catch (error) {
     throw new Error(
-      `無法連線到 LM Studio(${process.env.LMSTUDIO_BASE_URL ?? "http://localhost:1234/v1"})。請確認 LM Studio 已啟動本機伺服器並載入視覺模型。原始錯誤:${
+      `無法連線到 LM Studio(${config.baseUrl})。請確認 LM Studio 已啟動伺服器、ngrok 仍在執行並載入視覺模型,或請管理員檢查「AI 辨識設定」。原始錯誤:${
         error instanceof Error ? error.message : String(error)
       }`
     );

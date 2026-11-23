@@ -1,7 +1,14 @@
 import { prisma } from "@/lib/db";
 import { requireUser, AuthError } from "@/lib/auth";
 import { saveUploadedImage } from "@/lib/uploads";
-import { analyzePhoto, getDefaultProvider, isAiProvider, type PhotoAnalysisMode } from "@/lib/ai";
+import {
+  analyzePhoto,
+  getAiSettings,
+  getAllowedProviders,
+  getDefaultProvider,
+  isAiProvider,
+  type PhotoAnalysisMode,
+} from "@/lib/ai";
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -18,7 +25,15 @@ export async function POST(request: Request) {
   const file = formData?.get("file");
   const mode = formData?.get("mode") as PhotoAnalysisMode | null;
   const requestedProvider = formData?.get("provider");
-  const provider = requestedProvider == null ? getDefaultProvider() : requestedProvider;
+  const aiSettings = await getAiSettings();
+  const allowedProviders = getAllowedProviders(aiSettings);
+  // when the admin fixed a backend, it's used no matter what the client sent
+  const provider =
+    allowedProviders.length === 1
+      ? allowedProviders[0]
+      : requestedProvider == null
+        ? getDefaultProvider()
+        : requestedProvider;
 
   if (!(file instanceof File)) {
     return Response.json({ error: "請上傳照片。" }, { status: 400 });
@@ -43,6 +58,7 @@ export async function POST(request: Request) {
   try {
     const result = await analyzePhoto(
       provider,
+      aiSettings,
       mode,
       { base64: buffer.toString("base64"), mimeType: file.type },
       nutrients

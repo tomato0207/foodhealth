@@ -13,7 +13,7 @@ export interface DraftItem {
   servingSize?: number;
 }
 
-/** a photo-recognition backend as offered in the UI; `configured` is false when its env vars are missing */
+/** a photo-recognition backend as offered in the UI; `configured` is false when the admin/env settings it needs are missing */
 export interface AiProviderOption {
   id: "gemini" | "lmstudio";
   label: string;

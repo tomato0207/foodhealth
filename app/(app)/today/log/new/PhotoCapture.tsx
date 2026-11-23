@@ -98,13 +98,19 @@ export default function PhotoCapture({ mode, onModeChange, providers, defaultPro
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-gray-500">辨識引擎</span>
-        {providers.map((p) => (
+        {providers.length === 1 ? (
+          <span className="rounded-full border border-emerald-600 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+            {providers[0].label}
+            {!providers[0].configured && "(尚未設定,請聯絡管理員)"}
+          </span>
+        ) : (
+          providers.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => setProvider(p.id)}
             disabled={!p.configured}
-            title={p.configured ? undefined : "伺服器尚未設定此辨識引擎的環境變數"}
+            title={p.configured ? undefined : "管理員尚未設定此辨識引擎"}
             className={`rounded-full border px-3 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               provider === p.id
                 ? "border-emerald-600 bg-emerald-50 font-medium text-emerald-700"
@@ -114,7 +120,8 @@ export default function PhotoCapture({ mode, onModeChange, providers, defaultPro
             {p.label}
             {!p.configured && "(未設定)"}
           </button>
-        ))}
+          ))
+        )}
       </div>
 
       <input
