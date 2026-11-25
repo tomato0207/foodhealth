@@ -10,6 +10,10 @@ export function createLmStudioClient(config: Pick<LmStudioConfig, "baseUrl" | "a
     apiKey: config.apiKey || "lm-studio",
     // lets requests through when LM Studio is exposed via an ngrok tunnel (skips ngrok's browser warning page)
     defaultHeaders: { "ngrok-skip-browser-warning": "true" },
+    // give up before Vercel kills the function at 300s, so the user gets a real error instead of a hang;
+    // no retries — a retried slow local model would only blow past that limit
+    timeout: 240_000,
+    maxRetries: 0,
   });
 }
 
@@ -39,8 +43,13 @@ export async function analyzePhotoWithLmStudio(
         },
       ],
       temperature: 0.2,
+      // skip "thinking" on reasoning models (e.g. Qwen3.5): ~10x faster in testing (46s → 5s); ignored by other models
+      reasoning_effort: "none",
     });
   } catch (error) {
+    if (error instanceof OpenAI.APIConnectionTimeoutError) {
+      throw new Error("LM Studio 回應逾時(超過 4 分鐘),請確認那台電腦的 LM Studio 沒有卡住,或改用 Gemini。");
+    }
     throw new Error(
       `無法連線到 LM Studio(${config.baseUrl})。請確認 LM Studio 已啟動伺服器、ngrok 仍在執行並載入視覺模型,或請管理員檢查「AI 辨識設定」。原始錯誤:${
         error instanceof Error ? error.message : String(error)

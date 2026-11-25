@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { AiProviderOption, DraftItem } from "./types";
 
+// rough typical duration per backend; the progress bar is an estimate since the API gives no real progress
+const EXPECTED_SECONDS: Record<AiProviderOption["id"], number> = { gemini: 15, lmstudio: 40 };
+
 interface PhotoCaptureProps {
   mode: "food" | "label";
   onModeChange: (mode: "food" | "label") => void;
@@ -23,6 +26,17 @@ export default function PhotoCapture({ mode, onModeChange, providers, defaultPro
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!analyzing) return;
+    const startedAt = Date.now();
+    const timer = setInterval(() => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, [analyzing]);
+
+  // eases toward 95% around the expected duration and only reaches 100% when the response arrives
+  const estimatedProgress = 95 * (1 - Math.exp(-elapsedSeconds / EXPECTED_SECONDS[provider]));
 
   useEffect(() => {
     if (!error) return;
@@ -39,6 +53,7 @@ export default function PhotoCapture({ mode, onModeChange, providers, defaultPro
 
   async function handleAnalyze() {
     if (!file) return;
+    setElapsedSeconds(0);
     setAnalyzing(true);
     setError(null);
     try {
@@ -47,9 +62,13 @@ export default function PhotoCapture({ mode, onModeChange, providers, defaultPro
       formData.append("mode", mode);
       formData.append("provider", provider);
       const res = await fetch("/api/ai/analyze-photo", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "AI 辨識失敗,請改用手動輸入。");
+      // a platform timeout returns an HTML/plain-text page, not our JSON
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        setError(
+          data?.error ??
+            (res.status === 504 ? "AI 辨識逾時,請稍後再試或改用其他辨識引擎。" : "AI 辨識失敗,請改用手動輸入。")
+        );
         return;
       }
       const items: DraftItem[] = (data.items as {
@@ -155,12 +174,27 @@ export default function PhotoCapture({ mode, onModeChange, providers, defaultPro
         disabled={!file || analyzing || !providers.some((p) => p.id === provider && p.configured)}
         className="w-fit rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.97] disabled:opacity-50 disabled:active:scale-100"
       >
-        {analyzing
-          ? provider === "lmstudio"
-            ? "AI 辨識中...(本機模型可能需要一分鐘左右)"
-            : "AI 辨識中..."
-          : "開始 AI 辨識"}
+        {analyzing ? "AI 辨識中..." : "開始 AI 辨識"}
       </button>
+
+      {analyzing && (
+        <div className="flex max-w-sm flex-col gap-1.5" role="status" aria-live="polite">
+          <div className="h-2 overflow-hidden rounded-full bg-emerald-100">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-[width] duration-1000 ease-linear"
+              style={{ width: `${estimatedProgress}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-500">
+            {elapsedSeconds < 3
+              ? "上傳照片中..."
+              : elapsedSeconds < EXPECTED_SECONDS[provider] * 2
+                ? `AI 正在分析照片... 已等待 ${elapsedSeconds} 秒`
+                : `比平常久一些,仍在等待回應... 已等待 ${elapsedSeconds} 秒`}
+            {provider === "lmstudio" && "(本機模型)"}
+          </p>
+        </div>
+      )}
 
       {error && (
         <div
