@@ -6,6 +6,29 @@ import type { AiProviderOption, DraftItem } from "./types";
 // rough typical duration per backend; the progress bar is an estimate since the API gives no real progress
 const EXPECTED_SECONDS: Record<AiProviderOption["id"], number> = { gemini: 15, lmstudio: 40 };
 
+const MAX_UPLOAD_SIDE = 1600;
+
+/**
+ * Re-encodes the photo as a downscaled JPEG before upload: LM Studio rejects WebP, phone originals can exceed
+ * Vercel's 4.5MB request limit, and smaller images are analyzed faster. Falls back to the original on failure.
+ */
+async function toUploadJpeg(file: File): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_UPLOAD_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 interface PhotoCaptureProps {
   mode: "food" | "label";
   onModeChange: (mode: "food" | "label") => void;
@@ -58,7 +81,7 @@ export default function PhotoCapture({ mode, onModeChange, providers, defaultPro
     setError(null);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", await toUploadJpeg(file));
       formData.append("mode", mode);
       formData.append("provider", provider);
       const res = await fetch("/api/ai/analyze-photo", { method: "POST", body: formData });

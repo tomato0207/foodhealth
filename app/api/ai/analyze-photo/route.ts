@@ -72,6 +72,7 @@ export async function POST(request: Request) {
     }
     return Response.json({ ok: true, imageId: savedImage.id, items: result.items });
   } catch (error) {
+    console.error(`[analyze-photo] ${provider} failed:`, error);
     return Response.json(
       { error: error instanceof Error ? error.message : "AI 辨識失敗。", imageId: savedImage.id },
       { status: 502 }

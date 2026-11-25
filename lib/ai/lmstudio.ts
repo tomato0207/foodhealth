@@ -50,6 +50,14 @@ export async function analyzePhotoWithLmStudio(
     if (error instanceof OpenAI.APIConnectionTimeoutError) {
       throw new Error("LM Studio 回應逾時(超過 4 分鐘),請確認那台電腦的 LM Studio 沒有卡住,或改用 Gemini。");
     }
+    // reached LM Studio (or the ngrok policy) but the request was refused — not a connection problem
+    if (error instanceof OpenAI.APIError && error.status) {
+      throw new Error(
+        error.status === 401
+          ? "LM Studio 金鑰不正確(ngrok 拒絕連線),請管理員檢查「AI 辨識設定」中的 API 金鑰。"
+          : `LM Studio 拒絕了這次請求(${error.status}):${error.message}`
+      );
+    }
     throw new Error(
       `無法連線到 LM Studio(${config.baseUrl})。請確認 LM Studio 已啟動伺服器、ngrok 仍在執行並載入視覺模型,或請管理員檢查「AI 辨識設定」。原始錯誤:${
         error instanceof Error ? error.message : String(error)
