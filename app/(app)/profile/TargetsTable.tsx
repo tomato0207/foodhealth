@@ -12,6 +12,8 @@ interface TargetRow {
   category: string;
   dailyTarget: number;
   overridden: boolean;
+  /** shown value is a live preview from unsaved profile edits */
+  unsaved: boolean;
 }
 
 function TargetRowItem({ row }: { row: TargetRow }) {
@@ -55,6 +57,11 @@ function TargetRowItem({ row }: { row: TargetRow }) {
             已覆寫
           </span>
         )}
+        {row.unsaved && (
+          <span className="ml-2 rounded-full bg-sky-100 px-1.5 py-0.5 text-xs text-sky-800">
+            預覽
+          </span>
+        )}
       </td>
       <td className="py-2 pr-3">
         <input
@@ -93,7 +100,9 @@ export default function TargetsTable({ rows }: { rows: TargetRow[] }) {
               {rows
                 .filter((r) => r.category === category)
                 .map((row) => (
-                  <TargetRowItem key={row.nutrientId} row={row} />
+                  // keyed on the value too: the input keeps its own draft state, so it must
+                  // restart whenever the profile preview (or a save) changes the target
+                  <TargetRowItem key={`${row.nutrientId}:${row.dailyTarget}`} row={row} />
                 ))}
             </tbody>
           </table>

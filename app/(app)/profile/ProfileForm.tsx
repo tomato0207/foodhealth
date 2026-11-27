@@ -10,26 +10,19 @@ import {
   type Gender,
   type Goal,
 } from "@/lib/types";
+import type { ProfileInput } from "@/lib/nutrition";
 
 interface ProfileFormProps {
-  initial: {
-    gender: Gender;
-    birthYear: number;
-    heightCm: number;
-    weightKg: number;
-    activityLevel: ActivityLevel;
-    goal: Goal;
-  } | null;
+  /** controlled by ProfileEditor so the targets preview can follow every keystroke */
+  value: ProfileInput;
+  onChange: (value: ProfileInput) => void;
 }
 
-export default function ProfileForm({ initial }: ProfileFormProps) {
+export default function ProfileForm({ value, onChange }: ProfileFormProps) {
   const router = useRouter();
-  const [gender, setGender] = useState<Gender>(initial?.gender ?? "FEMALE");
-  const [birthYear, setBirthYear] = useState(initial?.birthYear ?? 1995);
-  const [heightCm, setHeightCm] = useState(initial?.heightCm ?? 165);
-  const [weightKg, setWeightKg] = useState(initial?.weightKg ?? 60);
-  const [activityLevel, setActivityLevel] = useState<ActivityLevel>(initial?.activityLevel ?? "LIGHT");
-  const [goal, setGoal] = useState<Goal>(initial?.goal ?? "MAINTAIN");
+  const { gender, birthYear, heightCm, weightKg, activityLevel, goal } = value;
+  const set = <K extends keyof ProfileInput>(key: K, fieldValue: ProfileInput[K]) =>
+    onChange({ ...value, [key]: fieldValue });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -60,7 +53,7 @@ export default function ProfileForm({ initial }: ProfileFormProps) {
         性別
         <select
           value={gender}
-          onChange={(e) => setGender(e.target.value as Gender)}
+          onChange={(e) => set("gender", e.target.value as Gender)}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
         >
           {Object.entries(GENDER_LABELS).map(([value, label]) => (
@@ -76,7 +69,7 @@ export default function ProfileForm({ initial }: ProfileFormProps) {
         <input
           type="number"
           value={birthYear}
-          onChange={(e) => setBirthYear(Number(e.target.value))}
+          onChange={(e) => set("birthYear", Number(e.target.value))}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
         />
       </label>
@@ -87,7 +80,7 @@ export default function ProfileForm({ initial }: ProfileFormProps) {
           type="number"
           step="0.1"
           value={heightCm}
-          onChange={(e) => setHeightCm(Number(e.target.value))}
+          onChange={(e) => set("heightCm", Number(e.target.value))}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
         />
       </label>
@@ -98,7 +91,7 @@ export default function ProfileForm({ initial }: ProfileFormProps) {
           type="number"
           step="0.1"
           value={weightKg}
-          onChange={(e) => setWeightKg(Number(e.target.value))}
+          onChange={(e) => set("weightKg", Number(e.target.value))}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
         />
       </label>
@@ -107,7 +100,7 @@ export default function ProfileForm({ initial }: ProfileFormProps) {
         活動量
         <select
           value={activityLevel}
-          onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)}
+          onChange={(e) => set("activityLevel", e.target.value as ActivityLevel)}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
         >
           {Object.entries(ACTIVITY_LEVEL_LABELS).map(([value, label]) => (
@@ -122,7 +115,7 @@ export default function ProfileForm({ initial }: ProfileFormProps) {
         目標
         <select
           value={goal}
-          onChange={(e) => setGoal(e.target.value as Goal)}
+          onChange={(e) => set("goal", e.target.value as Goal)}
           className="rounded-lg border border-gray-200 bg-white px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
         >
           {Object.entries(GOAL_LABELS).map(([value, label]) => (
